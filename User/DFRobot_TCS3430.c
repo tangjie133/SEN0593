@@ -11,6 +11,7 @@ sAZCFGReg_t _AZCfgReg;
 sINTENABReg_t _intEnabReg;
 
 extern struct InputRegList sInputReg;
+extern struct HoldingRegList sHoldingReg;
 
 uint8_t aTime = 0x48, wTime = 0; //0X24 积分时间
 
@@ -98,60 +99,82 @@ void init_Tcs3430(void){
     }
     printf("TCS3430 init ok!!!!! \n");
 }
-
+extern float x1 ,y1 ,ir1 ,z1 ,z2;
 void get_Data(void){
-    uint16_t X = 0,Y = 0, Z = 0, IR1 = 0, IR2 = 0,lux = 0,CCT = 0,change = 0;
+    uint16_t X = 0,Y = 0, Z = 0, IR1 = 0, IR2 = 0,lux = 0,CCT = 0,change = 0,CCT2 = 0;
     uint8_t buf[8];
-    float hight_X=0,hight_Y=0,hight_Z=0,low_X=0,low_Y=0,low_Z=0,temp_x=0,temp_y=0,temp=0,x1 = 0.882,y1 = 0.817,ir1 = 0.75,z1 = 0.73,z2 = 0.95;//0.95
+    //float hight_X=0,hight_Y=0,hight_Z=0,temp_x=0,temp_y=0,temp=0,x1 = 5.530558655,y1 = 5.850026765,z1 = 5.662578878;//0.95
+    float hight_X=0,hight_Y=0,hight_Z=0,low_X=0,low_Y=0,low_Z=0,temp_x=0,temp_y=0,temp=0;//0.95
     I2C_Read_Data(eRegCH0DATALAddr,buf,8);
-    Z = buf[0] | buf[1] << 8;
-    Y =  buf[2] | buf[3] << 8;
-    IR1 =  buf[4] | buf[5] << 8;
-    X =  buf[6] | buf[7] << 8;
-    printf("X: %d,Y: %d, Z: %d, IR1: %d\n",X,Y,Z,IR1);
-    lux = (data[1][0]* X + data[1][1]* Y + data[1][2]* Z + data[1][3]* IR1 ) * 8;
+    Z = (buf[0] | buf[1] << 8);
+    Y =  (buf[2] | buf[3] << 8);
+    IR1 =  (buf[4] | buf[5] << 8);
+    X =  (buf[6] | buf[7] << 8);
+    printf("X:%d ",X);
+    printf("Y:%d ",Y);
+    printf("Z:%d",Z);
+    printf("IR:%d\n",IR1);
+    IR2 = get_IR2();
+    
     change = (IR1 * 1000)/Y;
     if(change >253){//高红外
-        Z = Z * z1;
-    }else{
         Z = Z * z2;
+    }else{
+        Z = Z * z1;
     }
-    
     X = X *x1;
     Y = Y * y1; 
     IR1 = IR1 *ir1;
-    printf("new X: %d,Y: %d, Z: %d, IR1: %d\n",X,Y,Z,IR1);
-
-    IR2 = get_IR2();
-    
+    Z = Z * z1;
+    printf(" new2 X:%d ",X);
+    printf("Y:%d ",Y);
+    printf("Z:%d",Z);
+    printf("IR:%d\n",IR1);
+    lux = (data[1][0]* X + data[1][1]* Y + data[1][2]* Z + data[1][3]* IR1);
     hight_X = data[0][0]* X + data[0][1]* Y + data[0][2]* Z + data[0][3]* IR1;
     hight_Y = data[1][0]* X + data[1][1]* Y + data[1][2]* Z + data[1][3]* IR1;
     hight_Z = data[2][0]* X + data[2][1]* Y + data[2][2]* Z + data[2][3]* IR1;
     temp_x = hight_X/(hight_X+hight_Y+hight_Z);
     temp_y = hight_Y/(hight_X+hight_Y+hight_Z);
+    
+    //  temp = (temp_x-0.332)/(temp_y-0.1858);
+    //  CCT = (uint16_t)((-449.0*temp* temp*temp) +(3525.0*temp * temp)-(6823.3*temp)+5520.33);
     temp = (temp_x-0.332)/(0.1858-temp_y);
     CCT = (uint16_t)(437.0*temp* temp*temp +3601.0*temp * temp+6861.0*temp+5517.0);
-    
-    if((CCT > 3500 && IR1 > 1000) || (CCT > 3500 && ((lux / IR1) < 0.5))){
+    CCT2 = CCT;
+    if((CCT > 3500 && IR1 > 1000) || (CCT > 3500 && ((Y / IR1) < 0.5))){
         CCT = CCT * 0.9676 + 1083.6;
-    }else if((CCT > 4000 && IR1 < 180) || (CCT > 4000 && IR1 < 300 && ((lux / IR1) > 2.5))){
+    }else if((CCT > 4000 && IR1 < 180) || (CCT > 4000 && IR1 < 300 && ((Y / IR1) > 2.5))){
       CCT = 1.0611 * CCT + 433.07;
+      CCT = (CCT + CCT2)/2;
       }else{
       //cct = cct1;
       }
+    
+    lux  = (lux * 8 * 0.9265) -32.654;
+    if(lux > 2000){
+        lux -=200;
+    }
     sInputReg.REG_IR1 = IR1;
     sInputReg.REG_IR2 = IR2;
     sInputReg.REG_LUX = lux;
     sInputReg.REG_CCT = CCT;
     sInputReg.REG_x = temp_x * 10000;
     sInputReg.RGB_y = temp_y * 10000;
+    if(CCT > 3000 && IR1 > 1000){
+        sInputReg.REG_LOCATION = 1;
+    }else{
+        sInputReg.REG_LOCATION = 0;
+    }
 
   
     #if 1
-        printf("lux: %d,CCT: %d",lux,CCT);
+        //printf("X: %d,Y: %d, Z: %d, IR1: %d\n",X,Y,Z,IR1);
+        printf(" NEW lux: %d,CCT: %d\n",lux,CCT);
     #endif
 
 }
+
 uint16_t get_IR2(void)
 {
     uint16_t IR2 = 0;

@@ -24,6 +24,12 @@
  * 
  */
 struct HoldingRegList{
+    uint16_t REG_CONFIG_X;
+    uint16_t REG_CONFIG_Y;
+    uint16_t REG_CONFIG_Z;
+    uint16_t REG_CONFIG_IR1;
+    uint16_t REG_CONFIG_Z2;
+    uint16_t REG_RESERVED5;
     uint16_t REG_CONFIG;
     //... REG_CUSTOMIZE;
 };

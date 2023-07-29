@@ -34,6 +34,8 @@ volatile uint8_t RecIndexLen = 0;
 UART_HandleTypeDef sUartxHandle = {0};
 TIM_HandleTypeDef sTim2Handle = {0};
 FLASH_EraseInitTypeDef 	sFlashEraseInit = {0};	
+extern struct HoldingRegList sHoldingReg;
+float x1 = 0.882,y1 = 0.817,ir1 = 0.75,z1 = 0.73,z2 = 0.665;
 
 void timer2_init(){
   __HAL_RCC_TIM2_CLK_ENABLE();
@@ -81,7 +83,7 @@ int main(void)
   SystemClock_Config();
 			
   /* Peripheral clock enable */
-    __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOD_CLK_ENABLE();
@@ -105,6 +107,16 @@ int main(void)
     DFRobotTimerInit();
     DFRobot_Init_Reg_Attribute();//初始化寄存器
     init_Tcs3430();
+    x1 = sHoldingReg.REG_CONFIG_X / 1000.0;
+    y1 = sHoldingReg.REG_CONFIG_Y / 1000.0;
+    ir1 = sHoldingReg.REG_CONFIG_IR1 / 1000.0;
+    z1 = sHoldingReg.REG_CONFIG_Z / 1000.0;
+    z2 = sHoldingReg.REG_CONFIG_Z2 / 1000.0;
+    printf("X:%d\n",x1);
+    printf("Y:%d\n",y1);
+    printf("Z:%d\n",z1);
+    printf("IR:%d\n",ir1);
+    printf("Z2:%d\n",z2);
   while (1){
     if(DFRobot_RTU_Timer_Cnt > 5){// 5ms
         if(RecIndexLen > 0 ){
@@ -123,9 +135,9 @@ int main(void)
     }	
     
     if(readCount == 500){
-        readCount = 0;
+         readCount = 0;
         get_Data();
-    }
+     }
     readCount++;
     sendCount++;
     HAL_Delay(1);

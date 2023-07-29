@@ -52,15 +52,76 @@ void DFRobot_Init_Reg_Attribute(void){
     //sInputReg.REG_... = ...;
 #endif
 #if HOLDING_REGISTER
-    attachHoldingRegister(0x0000, 0x0000, 0xFFFF, RW);      //RESERVED                     保留寄存器
-    attachHoldingRegister(0x0001, 0x0000, 0xFFFF, RW);      //RESERVED                     保留寄存器
-    attachHoldingRegister(0x0002, 0x0000, 0xFFFF, RW);      //RESERVED                     保留寄存器
-    attachHoldingRegister(0x0003, 0x0000, 0xFFFF, RW);      //RESERVED                     保留寄存器
-    attachHoldingRegister(0x0004, 0x0000, 0xFFFF, RW);      //RESERVED                     保留寄存器
+    attachHoldingRegister(0x0000, 0x0000, 0xFFFF, RW);      //CONFIG_X                     保留寄存器
+    attachHoldingRegister(0x0001, 0x0000, 0xFFFF, RW);      //CONFIG_Y                     保留寄存器
+    attachHoldingRegister(0x0002, 0x0000, 0xFFFF, RW);      //CONFIG_Z                     保留寄存器
+    attachHoldingRegister(0x0003, 0x0000, 0xFFFF, RW);      //CONFIG_IR1                    保留寄存器
+    attachHoldingRegister(0x0004, 0x0000, 0xFFFF, RW);      //CONFIG_2                     保留寄存器
     attachHoldingRegister(0x0005, 0x0000, 0xFFFF, RW);      //RESERVED                     保留寄存器
     attachHoldingRegister(0x0006, 0x0000, 0xFFFF, RW);      //MODEL                        配置传感器上报数据模式
+    // attachHoldingRegister(0x0007, 0x0000, 0xFFFF, RW);      //CONFIG_X                     X系数
+    // attachHoldingRegister(0x0008, 0x0000, 0xFFFF, RW);      //CONFIG_Y                     Y系数
+    // attachHoldingRegister(0x0009, 0x0000, 0xFFFF, RW);      //CONFIG_Z                     Z系数
+    // attachHoldingRegister(0x000A, 0x0000, 0xFFFF, RW);      //CONFIG_IR1                   IR1系数
     //attachHoldingRegister(......, ......, ......, RW);      //CUSTOMIZE               自定义保持寄存器
-
+    //保持寄存器赋初值
+    holdingregAddr = FLASH_PROGRAM_ADDRESS_START_PID;//flash起始地址
+    if(*(uint8_t*)(holdingregAddr) != 0x1f){//是否被写入默认值
+        sFlashEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;	// 页擦除 
+        sFlashEraseInit.PageAddress = FLASH_PROGRAM_ADDRESS_START; // 开始擦除地址 必须以512Byte为单位
+        sFlashEraseInit.NbPages	= (FLASH_PROGRAM_ADDRESS_END - FLASH_PROGRAM_ADDRESS_START)/FLASH_PAGE_SIZE + 1;
+        if(HAL_FLASH_Erase(&sFlashEraseInit, &uiErrorPage) != HAL_OK){
+            Error_Handler();
+        }
+        holdingregAddr = FLASH_PROGRAM_ADDRESS_START;
+        while (holdingregAddr < FLASH_PROGRAM_ADDRESS_END){
+            if (*(uint8_t*)(holdingregAddr) != 0xFF){	// 判断地址数据是否擦除成功		
+                holdingregAddr = holdingregAddr + 1;			
+            }else{
+                holdingregAddr = holdingregAddr + 1;
+            }
+        }
+        sFlashEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;	// 页擦除 
+        sFlashEraseInit.PageAddress = FLASH_PROGRAM_ADDRESS_START_PID; // 开始擦除地址 必须以512Byte为单位
+        sFlashEraseInit.NbPages	= (FLASH_PROGRAM_ADDRESS_END_PID - FLASH_PROGRAM_ADDRESS_START_PID)/FLASH_PAGE_SIZE + 1;
+        if(HAL_FLASH_Erase(&sFlashEraseInit, &uiErrorPage) != HAL_OK){
+            Error_Handler();
+        }
+        holdingregAddr = FLASH_PROGRAM_ADDRESS_START_PID;
+        while (holdingregAddr < FLASH_PROGRAM_ADDRESS_END_PID){
+            if (*(uint8_t*)(holdingregAddr) != 0xFF){	// 判断地址数据是否擦除成功		
+                holdingregAddr = holdingregAddr + 1;			
+            }else{
+                holdingregAddr = holdingregAddr + 1;
+            }
+        }
+        
+        uint8_t flage = 0x1f;
+        holdingregAddr = FLASH_PROGRAM_ADDRESS_START_PID;
+				if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, holdingregAddr, flage) == HAL_OK){	// 写入操作		
+                holdingregAddr = holdingregAddr + 1;
+            }			
+        sHoldingReg.REG_RESERVED5 = 0;
+        sHoldingReg.REG_CONFIG = 0;
+        sHoldingReg.REG_CONFIG_X = 1000;
+        sHoldingReg.REG_CONFIG_Y = 1000;
+        sHoldingReg.REG_CONFIG_Z = 1000;
+        sHoldingReg.REG_CONFIG_IR1 = 1000;
+        sHoldingReg.REG_CONFIG_Z2 = 1000;
+        
+        //sHoldingReg.REG_... = ...;
+        uint8_t flashData = 0;
+        holdingregAddr = FLASH_PROGRAM_ADDRESS_START;
+        for(uint8_t i = 0; i < sizeof(sHoldingReg); i++){//将默认值写入flash
+            memcpy(&flashData,(uint8_t*)&sHoldingReg+i,sizeof(uint8_t));
+            if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, holdingregAddr, flashData) == HAL_OK){	// 写入操作		
+                holdingregAddr = holdingregAddr + 1;
+            }
+        }
+    }else{
+        holdingregAddr = FLASH_PROGRAM_ADDRESS_START;
+        memcpy(&sHoldingReg,&*(uint8_t*)(holdingregAddr),sizeof(sHoldingReg));
+    }
     
 #endif
 #if COIL_REGISTER
@@ -85,7 +146,9 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     }
 }
 uint8_t state = 0;
+
 bool DFRobot_RTU_Write_HoldingReg_CB(uint16_t StartRegAddr, uint8_t *data, uint8_t len){
+    uint16_t _data = 0;
     if(StartRegAddr == 0x06){
         if(data[0] == 0){
             state = 0;
@@ -101,8 +164,42 @@ bool DFRobot_RTU_Write_HoldingReg_CB(uint16_t StartRegAddr, uint8_t *data, uint8
                 mode = 1;
             
         }
-        
     }
+    else if(StartRegAddr == 0x00){
+        _data = data[1] << 8 | data[0];
+        sHoldingReg.REG_CONFIG_X = _data;
+        _data = data[3] << 8 | data[2];
+        sHoldingReg.REG_CONFIG_Y = _data;
+        _data = data[5] << 8 | data[4];
+        sHoldingReg.REG_CONFIG_Z = _data;
+        _data = data[7] << 8 | data[6];
+        sHoldingReg.REG_CONFIG_IR1 = _data;
+        _data = data[9] << 8 | data[8];
+        sHoldingReg.REG_CONFIG_Z2 = _data;
+        sFlashEraseInit.TypeErase = FLASH_TYPEERASE_PAGES;	// 页擦除 
+        sFlashEraseInit.PageAddress = FLASH_PROGRAM_ADDRESS_START; // 开始擦除地址 必须以512Byte为单位
+        sFlashEraseInit.NbPages	= (FLASH_PROGRAM_ADDRESS_END - FLASH_PROGRAM_ADDRESS_START)/FLASH_PAGE_SIZE + 1;
+        if(HAL_FLASH_Erase(&sFlashEraseInit, &uiErrorPage) != HAL_OK){
+            Error_Handler();
+        }
+        holdingregAddr = FLASH_PROGRAM_ADDRESS_START;
+        while (holdingregAddr < FLASH_PROGRAM_ADDRESS_END){
+            if (*(uint8_t*)(holdingregAddr) != 0xFF){	// 判断地址数据是否擦除成功		
+                holdingregAddr = holdingregAddr + 1;			
+            }else{
+                holdingregAddr = holdingregAddr + 1;
+            }
+        }
+        holdingregAddr = FLASH_PROGRAM_ADDRESS_START;
+        uint8_t flashData = 0;
+        for(uint8_t i = 0; i < sizeof(sHoldingReg); i++){//将修改后得数据写入flash 
+            memcpy(&flashData,(uint8_t*)&sHoldingReg+i,sizeof(uint8_t));
+            if(HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, holdingregAddr, flashData) == HAL_OK){	// 写入操作		
+                holdingregAddr = holdingregAddr + 1;
+            }
+        }
+    }
+    
     return true;
 }
 

@@ -21,6 +21,11 @@
 #define MODE_ONCE                       0
 #define MODE_CONTINUOUS                 1
 
+
+#define FLASH_PROGRAM_ADDRESS_START				0xFE00U		  // 64K
+#define FLASH_PROGRAM_ADDRESS_END				0x10000U  	
+#define FLASH_PROGRAM_ADDRESS_START_PID			0xFA00U		  // 64K
+#define FLASH_PROGRAM_ADDRESS_END_PID			0xFC00U		  
 	
 
 #endif

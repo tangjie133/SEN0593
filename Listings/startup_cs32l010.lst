@@ -620,7 +620,7 @@ ARM Macro Assembler    Page 10
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0+ --apcs=inter
 work --depend=.\objects\startup_cs32l010.d -o.\objects\startup_cs32l010.o -IF:\
-Desktop\fff\方案三\SEN0593\RTE -IH:\keil5\ARM\PACK\ARM\CMSIS\4.2.0\CMSIS\Includ
+Desktop\fff\方案二\SEN0593\RTE -IH:\keil5\ARM\PACK\ARM\CMSIS\4.2.0\CMSIS\Includ
 e -IH:\keil5\ARM\PACK\Chipsea\CS32L010_DFP\1.0.4 -IH:\keil5\ARM\PACK\Chipsea\CS
 32L010_DFP\1.0.4\Device\Include --predefine="__MICROLIB SETA 1" --predefine="__
 UVISION_VERSION SETA 514" --predefine="_RTE_ SETA 1" --list=.\listings\startup_
