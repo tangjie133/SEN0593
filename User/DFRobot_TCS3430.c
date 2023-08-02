@@ -12,7 +12,7 @@ sINTENABReg_t _intEnabReg;
 
 extern struct InputRegList sInputReg;
 extern struct HoldingRegList sHoldingReg;
-
+extern uint8_t printf_state;
 uint8_t aTime = 0x48, wTime = 0; //0X24 积分时间
 
 float data[3][4]={{-0.00262,0.643836,-0.20156,0.004045},
@@ -110,10 +110,11 @@ void get_Data(void){
     Y =  (buf[2] | buf[3] << 8);
     IR1 =  (buf[4] | buf[5] << 8);
     X =  (buf[6] | buf[7] << 8);
-    printf("X:%d ",X);
-    printf("Y:%d ",Y);
-    printf("Z:%d",Z);
-    printf("IR:%d\n",IR1);
+    // printf("X:%d ",X);
+    // printf("Y:%d ",Y);
+    // printf("Z:%d",Z);
+    // printf("IR:%d\n",IR1);
+    #if 1
     IR2 = get_IR2();
     
     change = (IR1 * 1000)/Y;
@@ -125,11 +126,10 @@ void get_Data(void){
     X = X *x1;
     Y = Y * y1; 
     IR1 = IR1 *ir1;
-    Z = Z * z1;
-    printf(" new2 X:%d ",X);
-    printf("Y:%d ",Y);
-    printf("Z:%d",Z);
-    printf("IR:%d\n",IR1);
+    // printf(" new2 X:%d ",X);
+    // printf("Y:%d ",Y);
+    // printf("Z:%d",Z);
+    // printf("IR:%d\n",IR1);
     lux = (data[1][0]* X + data[1][1]* Y + data[1][2]* Z + data[1][3]* IR1);
     hight_X = data[0][0]* X + data[0][1]* Y + data[0][2]* Z + data[0][3]* IR1;
     hight_Y = data[1][0]* X + data[1][1]* Y + data[1][2]* Z + data[1][3]* IR1;
@@ -168,11 +168,11 @@ void get_Data(void){
     }
 
   
-    #if 1
-        //printf("X: %d,Y: %d, Z: %d, IR1: %d\n",X,Y,Z,IR1);
-        printf(" NEW lux: %d,CCT: %d\n",lux,CCT);
+    if(printf_state == 1){
+        printf("X:%d Y:%d Z:%d R:%d \n",X,Y,Z,IR1);
+        //printf(" NEW lux: %d,CCT: %d\n",lux,CCT);
+    }
     #endif
-
 }
 
 uint16_t get_IR2(void)

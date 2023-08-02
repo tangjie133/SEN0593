@@ -96,10 +96,10 @@ static void SerialInit(uint32_t baud_rate)
 	GPIO_InitStruct.Alternate = GPIO_AF5_UART1_TXD;
 	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 		
-	GPIO_InitStruct.Pin = GPIO_PIN_4;
-	GPIO_InitStruct.Mode = GPIO_MODE_AF;
-	GPIO_InitStruct.Alternate = GPIO_AF5_UART1_RXD;
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	// GPIO_InitStruct.Pin = GPIO_PIN_4;
+	// GPIO_InitStruct.Mode = GPIO_MODE_AF;
+	// GPIO_InitStruct.Alternate = GPIO_AF5_UART1_RXD;
+	// HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
   }
 	
   huart1.gState = HAL_UART_STATE_BUSY;

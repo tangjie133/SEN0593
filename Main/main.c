@@ -33,9 +33,11 @@ volatile uint8_t RecIndexLen = 0;
 /* Public variables ----------------------------------------------------------*/
 UART_HandleTypeDef sUartxHandle = {0};
 TIM_HandleTypeDef sTim2Handle = {0};
+GPIO_InitTypeDef GPIO_InitStruct1 = {0};
 FLASH_EraseInitTypeDef 	sFlashEraseInit = {0};	
 extern struct HoldingRegList sHoldingReg;
 float x1 = 0.882,y1 = 0.817,ir1 = 0.75,z1 = 0.73,z2 = 0.665;
+uint8_t printf_state;
 
 void timer2_init(){
   __HAL_RCC_TIM2_CLK_ENABLE();
@@ -89,34 +91,45 @@ int main(void)
 	__HAL_RCC_GPIOD_CLK_ENABLE();
 	__HAL_RCC_I2C_CLK_ENABLE();
 	__HAL_RCC_UART0_CLK_ENABLE();
-    __HAL_RCC_UART1_CLK_ENABLE();
-    __HAL_RCC_I2C_CLK_ENABLE();
+  __HAL_RCC_UART1_CLK_ENABLE();
+  __HAL_RCC_I2C_CLK_ENABLE();
 
 	UartInit();
-    init_I2C();
+  init_I2C();
 	sUartxHandle.Instance = UART0;
 	sUartxHandle.Init.BaudRate = 9600;
 	sUartxHandle.Init.BaudDouble = UART_BAUDDOUBLE_DISABLE;	// 
 	sUartxHandle.Init.WordLength = UART_WORDLENGTH_8B;
 	sUartxHandle.Init.Parity = UART_PARITY_NONE;
 	sUartxHandle.Init.Mode = UART_MODE_TX_RX;
-    HAL_UART_Init(&sUartxHandle);
+  HAL_UART_Init(&sUartxHandle);
 	
-	  HAL_UART_Receive_IT(&sUartxHandle, (uint8_t *)&receData, 1);	
-	  HAL_NVIC_EnableIRQ(UART0_IRQn); // 
-    DFRobotTimerInit();
-    DFRobot_Init_Reg_Attribute();//初始化寄存器
-    init_Tcs3430();
-    x1 = sHoldingReg.REG_CONFIG_X / 1000.0;
-    y1 = sHoldingReg.REG_CONFIG_Y / 1000.0;
-    ir1 = sHoldingReg.REG_CONFIG_IR1 / 1000.0;
-    z1 = sHoldingReg.REG_CONFIG_Z / 1000.0;
-    z2 = sHoldingReg.REG_CONFIG_Z2 / 1000.0;
-    printf("X:%d\n",x1);
-    printf("Y:%d\n",y1);
-    printf("Z:%d\n",z1);
-    printf("IR:%d\n",ir1);
-    printf("Z2:%d\n",z2);
+	HAL_UART_Receive_IT(&sUartxHandle, (uint8_t *)&receData, 1);	
+	HAL_NVIC_EnableIRQ(UART0_IRQn); // 
+  DFRobotTimerInit();
+  DFRobot_Init_Reg_Attribute();//初始化寄存器
+  init_Tcs3430();
+  x1 = sHoldingReg.REG_CONFIG_X / 1000.0;
+  y1 = sHoldingReg.REG_CONFIG_Y / 1000.0;
+  ir1 = sHoldingReg.REG_CONFIG_IR1 / 1000.0;
+  z1 = sHoldingReg.REG_CONFIG_Z / 1000.0;
+  z2 = sHoldingReg.REG_CONFIG_Z2 / 1000.0;
+  printf("X1: %f\n",x1);
+  printf("Y1: %f\n",y1);
+  printf("Z1: %f\n",z1);
+  printf("R1: %f\n",ir1);
+  printf_state = 0;
+  GPIO_InitStruct1.Pin = GPIO_PIN_4;
+	GPIO_InitStruct1.Mode = GPIO_MODE_OUTPUT;
+	GPIO_InitStruct1.OpenDrain = GPIO_PUSHPULL;	
+	GPIO_InitStruct1.Debounce.Enable = GPIO_DEBOUNCE_DISABLE;
+	GPIO_InitStruct1.SlewRate = GPIO_SLEW_RATE_HIGH;
+	GPIO_InitStruct1.DrvStrength = GPIO_DRV_STRENGTH_LOW;
+	GPIO_InitStruct1.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct1);
+  if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_4) == GPIO_PIN_SET){//打印控制
+    printf_state = 1;
+  }
   while (1){
     if(DFRobot_RTU_Timer_Cnt > 5){// 5ms
         if(RecIndexLen > 0 ){
